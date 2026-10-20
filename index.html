@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>KenFilms – Open-Source Camera, Filmmaking &amp; Engineering Projects</title>
-  <meta name="description" content="Open-source projects by Ken Friedl (KenFilms): Bluetooth remotes for the Blackmagic Pocket Cinema Camera 6K, ESP32 / M5Stack firmware, and a FreeCAD model of a miniature beam steam engine.">
+  <meta name="description" content="Walk through an interactive 3D gallery of open-source projects by Ken Friedl (KenFilms): Bluetooth remotes for the Blackmagic Pocket Cinema Camera 6K, ESP32 / M5Stack firmware, a FreeCAD beam steam engine and an R2D2 ROS robot.">
   <meta name="author" content="Ken Friedl">
   <meta name="robots" content="index, follow">
   <meta name="theme-color" content="#2f3061">
@@ -12,7 +12,7 @@
 
   <meta property="og:type" content="website">
   <meta property="og:title" content="KenFilms – Open-Source Projects">
-  <meta property="og:description" content="Bluetooth camera remotes for the BMPCC6K, ESP32 / M5Stack firmware and FreeCAD engineering models.">
+  <meta property="og:description" content="An interactive 3D gallery of Bluetooth camera remotes for the BMPCC6K, ESP32 / M5Stack firmware and engineering projects.">
   <meta property="og:url" content="https://kenfilms.github.io/">
   <meta property="og:image" content="https://kenfilms.github.io/MagicPilot_Remote/images/social-preview.jpg">
   <meta name="twitter:card" content="summary_large_image">
@@ -47,148 +47,866 @@
 
   <style>
     :root {
-      --bg: #f6f7fb;
+      --accent: #2f3061;
+      --accent-light: #9ea3ff;
       --fg: #1f2330;
       --muted: #5b6275;
-      --accent: #2f3061;
-      --card: #ffffff;
-      --border: #e2e5ee;
-      --tag-bg: #eceefe;
-    }
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg: #12141c;
-        --fg: #e8eaf1;
-        --muted: #a3a9ba;
-        --accent: #9ea3ff;
-        --card: #1b1e29;
-        --border: #2c3040;
-        --tag-bg: #262a3d;
-      }
+      --glass: rgba(18, 20, 28, .72);
     }
     * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #12141c; }
     body {
-      margin: 0;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      line-height: 1.6;
-      color: var(--fg);
-      background: var(--bg);
-    }
-    a { color: var(--accent); }
-    header {
-      background: linear-gradient(160deg, #2f3061 0%, #6c6fa8 100%);
       color: #fff;
-      padding: 4rem 1.25rem 3rem;
-      text-align: center;
+      -webkit-tap-highlight-color: transparent;
     }
-    header h1 { margin: 0 0 .5rem; font-size: clamp(2rem, 5vw, 3rem); }
-    header p { margin: 0 auto 1.5rem; max-width: 40rem; font-size: 1.15rem; opacity: .92; }
-    .btn {
-      display: inline-block;
-      padding: .6rem 1.2rem;
-      border-radius: 999px;
-      font-weight: 600;
-      text-decoration: none;
-      border: 2px solid #fff;
-      color: #fff;
+    #scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; outline: none; }
+    #scene.dragging { cursor: grabbing; }
+    #scene.hovering { cursor: pointer; }
+
+    .topbar {
+      position: fixed; top: max(.75rem, env(safe-area-inset-top)); left: .75rem; right: .75rem;
+      display: flex; align-items: center; gap: .75rem; pointer-events: none;
     }
-    .btn:hover { opacity: .85; }
-    main { max-width: 72rem; margin: 0 auto; padding: 0 1.25rem 3rem; }
-    h2 { margin: 2.5rem 0 1rem; }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
-      gap: 1.25rem;
+    .topbar > * { pointer-events: auto; }
+    .pill {
+      display: inline-flex; align-items: center; gap: .4rem;
+      padding: .5rem .95rem; border-radius: 999px;
+      background: var(--glass); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      color: #fff; text-decoration: none; font-weight: 600; font-size: .9rem;
+      border: 1px solid rgba(255, 255, 255, .14);
     }
-    .card {
-      display: flex;
-      flex-direction: column;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      overflow: hidden;
-      text-decoration: none;
-      color: inherit;
-      box-shadow: 0 6px 20px rgba(0, 0, 0, .08);
-      transition: transform .15s ease, box-shadow .15s ease;
+    a.pill:hover, a.pill:focus-visible { background: rgba(47, 48, 97, .9); }
+    .brand span { font-weight: 400; opacity: .75; }
+
+    .hint {
+      position: fixed; top: calc(max(.75rem, env(safe-area-inset-top)) + 3rem); left: 50%; transform: translateX(-50%);
+      margin: 0; padding: .45rem .9rem; border-radius: 999px; background: var(--glass);
+      font-size: .85rem; white-space: nowrap; pointer-events: none; transition: opacity .8s ease;
     }
-    .card:hover { transform: translateY(-3px); box-shadow: 0 12px 28px rgba(0, 0, 0, .15); }
-    .card img { width: 100%; aspect-ratio: 2 / 1; object-fit: cover; display: block; background: #2f3061; }
-    .card .body { padding: 1rem 1.25rem 1.25rem; display: flex; flex-direction: column; flex: 1; }
-    .card h3 { margin: 0 0 .4rem; font-size: 1.2rem; }
-    .card p { margin: 0 0 1rem; color: var(--muted); font-size: .95rem; flex: 1; }
-    .tags { display: flex; flex-wrap: wrap; gap: .4rem; }
-    .tag { background: var(--tag-bg); border-radius: 999px; padding: .15rem .6rem; font-size: .8rem; }
-    .link { margin-top: .9rem; font-weight: 600; color: var(--accent); }
-    footer { text-align: center; color: var(--muted); font-size: .9rem; padding: 2rem 1rem; }
+    .hint.faded { opacity: 0; }
+    @media (max-width: 700px) { .hint { white-space: normal; text-align: center; width: max-content; max-width: calc(100% - 1.5rem); } }
+
+    .chips {
+      position: fixed; left: 50%; bottom: max(1rem, env(safe-area-inset-bottom)); transform: translateX(-50%);
+      display: flex; gap: .5rem; max-width: calc(100% - 1.5rem); overflow-x: auto;
+      padding: .4rem; border-radius: 999px; background: var(--glass);
+      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      scrollbar-width: none; transition: opacity .3s ease;
+    }
+    .chips::-webkit-scrollbar { display: none; }
+    .chips a {
+      flex: none; padding: .4rem .85rem; border-radius: 999px; font-size: .85rem; font-weight: 600;
+      color: #fff; text-decoration: none; white-space: nowrap;
+    }
+    .chips a:hover, .chips a:focus-visible, .chips a.active { background: var(--accent); }
+    .chips a:focus-visible { outline: 2px solid var(--accent-light); outline-offset: 1px; }
+
+    .panel {
+      position: fixed; top: 50%; right: 1.25rem; width: min(22rem, calc(100% - 2.5rem));
+      transform: translate(calc(100% + 2rem), -50%); opacity: 0;
+      transition: transform .45s cubic-bezier(.2, .8, .2, 1), opacity .35s ease;
+      background: #fff; color: var(--fg); border-radius: 16px; padding: 1.4rem 1.4rem 1.3rem;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, .35);
+    }
+    .panel.open { transform: translate(0, -50%); opacity: 1; }
+    .panel h2 { margin: 0 2rem .5rem 0; font-size: 1.35rem; line-height: 1.25; }
+    .panel h2 small { font-size: .7em; font-weight: 500; color: var(--muted); }
+    .panel p { margin: 0 0 1rem; color: var(--muted); line-height: 1.55; font-size: .95rem; }
+    .panel .tags { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: 1.2rem; }
+    .panel .tag { background: #eceefe; border-radius: 999px; padding: .15rem .6rem; font-size: .8rem; }
+    .panel .cta {
+      display: inline-block; padding: .65rem 1.2rem; border-radius: 999px; background: var(--accent);
+      color: #fff; font-weight: 600; text-decoration: none;
+    }
+    .panel .cta:hover, .panel .cta:focus-visible { background: #45478a; }
+    .panel .close {
+      position: absolute; top: .7rem; right: .7rem; width: 2rem; height: 2rem; border-radius: 50%;
+      border: 0; background: #f0f1f6; color: var(--fg); font-size: 1.3rem; line-height: 1; cursor: pointer;
+    }
+    .panel .close:hover, .panel .close:focus-visible { background: #e2e5ee; }
+    @media (max-width: 700px) {
+      .panel {
+        top: auto; right: .75rem; left: .75rem; bottom: max(.75rem, env(safe-area-inset-bottom)); width: auto;
+        transform: translateY(calc(100% + 2rem));
+      }
+      .panel.open { transform: translateY(0); }
+      body.panel-open .chips { opacity: 0; pointer-events: none; }
+    }
+
+    .loading, .fallback {
+      position: fixed; inset: 0; display: grid; place-items: center; text-align: center; padding: 2rem;
+      background: linear-gradient(160deg, #2f3061 0%, #6c6fa8 100%); transition: opacity .6s ease;
+    }
+    .loading.done { opacity: 0; pointer-events: none; }
+    .fallback a { color: #fff; font-weight: 600; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .panel, .hint, .loading, .chips { transition: none; }
+    }
   </style>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js"
+    }
+  }
+  </script>
 </head>
 <body>
-  <header>
-    <h1>🎬 KenFilms</h1>
-    <p>Open-source projects by <strong>Ken Friedl</strong>: Bluetooth remotes for the Blackmagic Pocket Cinema Camera, ESP32 / M5Stack firmware, and engineering CAD models.</p>
-    <a class="btn" href="https://github.com/KenFilms">GitHub profile</a>
-  </header>
+  <canvas id="scene" tabindex="0" aria-label="Interactive 3D room with framed projects on the walls. Use the project links below to visit them."></canvas>
 
-  <main>
-    <h2 id="camera">📷 Camera &amp; filmmaking</h2>
-    <div class="grid">
-      <a class="card" href="https://kenfilms.github.io/MagicPilot_Remote/">
-        <img src="https://repository-images.githubusercontent.com/1406251765/aa2f91ec-a721-4e52-a0d3-fff6c9b24bda" alt="MagicPilot Remote social preview" loading="lazy">
-        <div class="body">
-          <h3>MagicPilot Remote</h3>
-          <p>Open-source Bluetooth touchscreen remote for the Blackmagic Pocket Cinema Camera 6K. ESP32 firmware for M5Stack Core2 / CoreS3: focus, ISO, shutter, white balance, iris, record and presets.</p>
-          <div class="tags"><span class="tag">ESP32</span><span class="tag">M5Stack</span><span class="tag">BLE</span><span class="tag">BMPCC6K</span></div>
-          <span class="link">Visit project site →</span>
-        </div>
-      </a>
+  <div class="topbar">
+    <a class="pill" href="list.html">☰ List View</a>
+    <span class="pill brand">🎬 KenFilms <span>· 3D Project Room</span></span>
+  </div>
 
-      <a class="card" href="https://github.com/KenFilms/MagicPilot_Remote_Stick">
-        <img src="https://repository-images.githubusercontent.com/1406429375/fc8ec531-8fde-48f7-a548-a9117859a4ac" alt="MagicPilot Remote Stick social preview" loading="lazy">
-        <div class="body">
-          <h3>MagicPilot Remote Stick</h3>
-          <p>A pocket-sized Bluetooth LE remote for the original M5Stick controlling the BMPCC6K. Live camera timecode, one-button REC/STOP and a tiny 80×160 display.</p>
-          <div class="tags"><span class="tag">M5Stick</span><span class="tag">BLE</span><span class="tag">Timecode</span><span class="tag">BMPCC6K</span></div>
-          <span class="link">View on GitHub →</span>
-        </div>
-      </a>
+  <p class="hint" id="hint">Drag to look around · Scroll or WASD to walk · Click a picture</p>
 
-      <a class="card" href="https://github.com/KenFilms/MagicFocusEF_wip">
-        <img src="https://repository-images.githubusercontent.com/456947968/2ba1ab63-b523-4501-ba07-081348ef1455" alt="MagicFocus EF social preview" loading="lazy">
-        <div class="body">
-          <h3>MagicFocus EF <small>(work in progress)</small></h3>
-          <p>LiDAR-based autofocus for Canon EF lenses on the Blackmagic Pocket Cinema Camera 6K, using the BlueMagic32 library.</p>
-          <div class="tags"><span class="tag">LiDAR</span><span class="tag">Autofocus</span><span class="tag">Canon EF</span><span class="tag">BMPCC6K</span></div>
-          <span class="link">View on GitHub →</span>
-        </div>
-      </a>
-    </div>
+  <nav class="chips" id="chips" aria-label="Projects">
+    <a href="https://kenfilms.github.io/MagicPilot_Remote/" data-id="magicpilot-remote">MagicPilot Remote</a>
+    <a href="https://github.com/KenFilms/MagicPilot_Remote_Stick" data-id="magicpilot-remote-stick">Remote Stick</a>
+    <a href="https://github.com/KenFilms/MagicFocusEF_wip" data-id="magicfocus-ef">MagicFocus EF</a>
+    <a href="https://kenfilms.github.io/Miniature-Beam-Steam-Engine-CAD/" data-id="beam-steam-engine">Beam Steam Engine</a>
+    <a href="https://github.com/KenFilms/R2D2_ROS" data-id="r2d2-ros">R2D2 ROS</a>
+    <a href="https://github.com/KenFilms" data-id="github">GitHub</a>
+  </nav>
 
-    <h2 id="engineering">⚙️ Engineering, robotics &amp; CAD</h2>
-    <div class="grid">
-      <a class="card" href="https://kenfilms.github.io/Miniature-Beam-Steam-Engine-CAD/">
-        <img src="https://repository-images.githubusercontent.com/646574552/c2997070-df61-457d-b57e-3476d3eb981c" alt="Miniature Beam Steam Engine social preview" loading="lazy">
-        <div class="body">
-          <h3>Miniature Beam Steam Engine</h3>
-          <p>Free 3D CAD model of a miniature beam steam engine made in FreeCAD with the Assembly4 workbench, featured in an educational YouTube video.</p>
-          <div class="tags"><span class="tag">FreeCAD</span><span class="tag">Assembly4</span><span class="tag">Steam engine</span></div>
-          <span class="link">Visit project site →</span>
-        </div>
-      </a>
-      <a class="card" href="https://github.com/KenFilms/R2D2_ROS">
-        <img src="https://repository-images.githubusercontent.com/452084331/b8102ea8-1516-4e8f-81cf-b44f0ae6bcc1" alt="R2D2 ROS social preview" loading="lazy">
-        <div class="body">
-          <h3>R2D2 ROS <small>(work in progress)</small></h3>
-          <p>A 1:2 scale De Agostini R2D2 modified to work with ROS, with LiDAR-based SLAM, offline voice commands using Julius, and face recognition using a Full HD camera.</p>
-          <div class="tags"><span class="tag">ROS</span><span class="tag">LiDAR</span><span class="tag">SLAM</span><span class="tag">Robotics</span></div>
-          <span class="link">View on GitHub →</span>
-        </div>
-      </a>
-    </div>
-  </main>
+  <aside class="panel" id="panel" hidden aria-live="polite" aria-labelledby="panel-title">
+    <button class="close" id="panel-close" type="button" aria-label="Close">×</button>
+    <h2 id="panel-title"></h2>
+    <p id="panel-desc"></p>
+    <div class="tags" id="panel-tags"></div>
+    <a class="cta" id="panel-link" href="list.html"></a>
+  </aside>
 
-  <footer>
-    © Ken Friedl · <a href="https://github.com/KenFilms">github.com/KenFilms</a>
-  </footer>
+  <div class="loading" id="loading">Loading room…</div>
+
+  <noscript>
+    <div class="fallback"><p>The 3D room needs JavaScript. <a href="list.html">Browse the projects as a list instead →</a></p></div>
+  </noscript>
+
+  <script type="module">
+    import * as THREE from 'three';
+
+    const ROOM = { w: 14, d: 12, h: 4.2 };
+    const EYE = 1.6;
+    const FRAME_Y = 1.8;
+    const START = { pos: new THREE.Vector3(0, EYE, 4.2), yaw: 0, pitch: -0.04 };
+    const FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+    const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const mobileLayout = matchMedia('(max-width: 700px)');
+
+    // Each item is a framed picture on a wall. `offset` is metres to the right of the wall's centre (as seen by the viewer).
+    const ITEMS = [
+      {
+        id: 'magicpilot-remote', title: 'MagicPilot Remote', wall: 'back', offset: -4.2,
+        image: 'images/projects/magicpilot-remote.jpg',
+        desc: 'Open-source Bluetooth touchscreen remote for the Blackmagic Pocket Cinema Camera 6K. ESP32 firmware for M5Stack Core2 / CoreS3: focus, ISO, shutter, white balance, iris, record and presets.',
+        tags: ['ESP32', 'M5Stack', 'BLE', 'BMPCC6K'],
+        url: 'https://kenfilms.github.io/MagicPilot_Remote/', cta: 'Visit project site →',
+      },
+      {
+        id: 'magicpilot-remote-stick', title: 'MagicPilot Remote Stick', wall: 'back', offset: 0,
+        image: 'images/projects/magicpilot-remote-stick.jpg',
+        desc: 'A pocket-sized Bluetooth LE remote for the original M5Stick controlling the BMPCC6K. Live camera timecode, one-button REC/STOP and a tiny 80×160 display.',
+        tags: ['M5Stick', 'BLE', 'Timecode', 'BMPCC6K'],
+        url: 'https://github.com/KenFilms/MagicPilot_Remote_Stick', cta: 'View on GitHub →',
+      },
+      {
+        id: 'magicfocus-ef', title: 'MagicFocus EF', wip: true, wall: 'back', offset: 4.2,
+        image: 'images/projects/magicfocus-ef.jpg',
+        desc: 'LiDAR-based autofocus for Canon EF lenses on the Blackmagic Pocket Cinema Camera 6K, using the BlueMagic32 library.',
+        tags: ['LiDAR', 'Autofocus', 'Canon EF', 'BMPCC6K'],
+        url: 'https://github.com/KenFilms/MagicFocusEF_wip', cta: 'View on GitHub →',
+      },
+      {
+        id: 'beam-steam-engine', title: 'Miniature Beam Steam Engine', wall: 'right', offset: -2.6,
+        image: 'images/projects/beam-steam-engine.jpg',
+        desc: 'Free 3D CAD model of a miniature beam steam engine made in FreeCAD with the Assembly4 workbench, featured in an educational YouTube video.',
+        tags: ['FreeCAD', 'Assembly4', 'Steam engine'],
+        url: 'https://kenfilms.github.io/Miniature-Beam-Steam-Engine-CAD/', cta: 'Visit project site →',
+      },
+      {
+        id: 'r2d2-ros', title: 'R2D2 ROS', wip: true, wall: 'right', offset: 2.6,
+        image: 'images/projects/r2d2-ros.jpg',
+        desc: 'A 1:2 scale De Agostini R2D2 modified to work with ROS, with LiDAR-based SLAM, offline voice commands using Julius, and face recognition using a Full HD camera.',
+        tags: ['ROS', 'LiDAR', 'SLAM', 'Robotics'],
+        url: 'https://github.com/KenFilms/R2D2_ROS', cta: 'View on GitHub →',
+      },
+      {
+        id: 'github', title: 'KenFilms on GitHub', wall: 'left', offset: 0, icon: 'github',
+        desc: 'Source code, releases and all other open-source projects by Ken Friedl.',
+        tags: ['GitHub', 'Open source'],
+        url: 'https://github.com/KenFilms', cta: 'Open GitHub profile →',
+      },
+      {
+        id: 'exit', title: 'Back to the List View', wall: 'front', offset: 0, door: true,
+        desc: 'Prefer a classic page? Return to the regular overview of all projects.',
+        tags: [],
+        url: 'list.html', cta: 'Go to list view →',
+      },
+    ];
+
+    const WALLS = {
+      back:  { angle: 0,            half: ROOM.d / 2 },
+      right: { angle: -Math.PI / 2, half: ROOM.w / 2 },
+      front: { angle: Math.PI,      half: ROOM.d / 2 },
+      left:  { angle: Math.PI / 2,  half: ROOM.w / 2 },
+    };
+
+    function wallPlacement(wall, offset, y, inset = 0.01) {
+      const { angle, half } = WALLS[wall];
+      const normal = new THREE.Vector3(Math.sin(angle), 0, Math.cos(angle));
+      const along = new THREE.Vector3(Math.cos(angle), 0, -Math.sin(angle));
+      const position = normal.clone().multiplyScalar(-(half - inset)).addScaledVector(along, offset).setY(y);
+      return { position, normal, angle };
+    }
+
+    // ---------- Renderer / scene ----------
+    const canvas = document.getElementById('scene');
+    let renderer;
+    try {
+      renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    } catch (err) {
+      document.getElementById('loading').outerHTML =
+        '<div class="fallback"><p>Your browser could not start WebGL, so the 3D room is unavailable. <a href="list.html">Browse the projects as a list instead →</a></p></div>';
+      throw err;
+    }
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.setSize(innerWidth, innerHeight, false);
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.05;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    const maxAniso = renderer.capabilities.getMaxAnisotropy();
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x12141c);
+
+    const camera = new THREE.PerspectiveCamera(62, innerWidth / innerHeight, 0.05, 60);
+    camera.rotation.order = 'YXZ';
+
+    const manager = new THREE.LoadingManager();
+    const loadingEl = document.getElementById('loading');
+    const hideLoading = () => loadingEl.classList.add('done');
+    manager.onLoad = hideLoading;
+    manager.onError = (url) => console.warn('Failed to load', url);
+    setTimeout(hideLoading, 8000);
+    const texLoader = new THREE.TextureLoader(manager);
+
+    // ---------- Canvas texture helpers ----------
+    function canvasTexture(w, h, draw) {
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      draw(c.getContext('2d'), w, h);
+      const tex = new THREE.CanvasTexture(c);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.anisotropy = maxAniso;
+      return tex;
+    }
+
+    function woodTexture() {
+      const tex = canvasTexture(1024, 1024, (ctx, w, h) => {
+        const rows = 8, rowH = h / rows;
+        for (let r = 0; r < rows; r++) {
+          let x = -Math.random() * 400;
+          while (x < w) {
+            const len = 380 + Math.random() * 320;
+            const l = 34 + Math.random() * 10;
+            ctx.fillStyle = `hsl(${26 + Math.random() * 8}, ${38 + Math.random() * 10}%, ${l}%)`;
+            ctx.fillRect(x, r * rowH, len, rowH);
+            for (let g = 0; g < 18; g++) {
+              ctx.strokeStyle = `rgba(60, 35, 15, ${0.05 + Math.random() * 0.08})`;
+              ctx.lineWidth = 1 + Math.random() * 2;
+              const gy = r * rowH + Math.random() * rowH;
+              ctx.beginPath();
+              ctx.moveTo(x, gy);
+              ctx.bezierCurveTo(x + len * .3, gy + (Math.random() - .5) * 10, x + len * .7, gy + (Math.random() - .5) * 10, x + len, gy);
+              ctx.stroke();
+            }
+            ctx.fillStyle = 'rgba(30, 18, 8, .55)';
+            ctx.fillRect(x, r * rowH, 3, rowH);
+            x += len;
+          }
+          ctx.fillStyle = 'rgba(30, 18, 8, .55)';
+          ctx.fillRect(0, r * rowH, w, 3);
+        }
+      });
+      tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+      tex.repeat.set(ROOM.w / 4, ROOM.d / 4);
+      return tex;
+    }
+
+    function wrapLines(ctx, text, maxWidth) {
+      const words = text.split(' '), lines = [];
+      let line = '';
+      for (const word of words) {
+        const test = line ? line + ' ' + word : word;
+        if (ctx.measureText(test).width > maxWidth && line) { lines.push(line); line = word; }
+        else line = test;
+      }
+      if (line) lines.push(line);
+      return lines;
+    }
+
+    function plaqueTexture(item) {
+      return canvasTexture(1024, 320, (ctx, w, h) => {
+        ctx.fillStyle = '#f7f5f0';
+        ctx.fillRect(0, 0, w, h);
+        ctx.strokeStyle = '#d9d4c7';
+        ctx.lineWidth = 6;
+        ctx.strokeRect(3, 3, w - 6, h - 6);
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#1f2330';
+        ctx.font = `700 84px ${FONT}`;
+        ctx.fillText(item.title, w / 2, 135, w - 60);
+        ctx.fillStyle = '#5b6275';
+        ctx.font = `500 54px ${FONT}`;
+        const sub = [...item.tags, ...(item.wip ? ['WIP'] : [])].join(' · ');
+        ctx.fillText(sub, w / 2, 230, w - 60);
+      });
+    }
+
+    const GITHUB_PATH = 'M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z';
+
+    function githubTexture() {
+      return canvasTexture(1280, 640, (ctx, w, h) => {
+        const g = ctx.createLinearGradient(0, 0, w, h);
+        g.addColorStop(0, '#24292f');
+        g.addColorStop(1, '#2f3061');
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, w, h);
+        ctx.save();
+        ctx.translate(w / 2 - 160, 90);
+        ctx.scale(20, 20);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill(new Path2D(GITHUB_PATH));
+        ctx.restore();
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `700 84px ${FONT}`;
+        ctx.fillText('github.com/KenFilms', w / 2, 520);
+      });
+    }
+
+    function textPanel(text, { width = 2048, height = 256, size = 120, color = '#2f3061', weight = 700, glow } = {}) {
+      return canvasTexture(width, height, (ctx, w, h) => {
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = `${weight} ${size}px ${FONT}`;
+        if (glow) { ctx.shadowColor = glow; ctx.shadowBlur = 40; }
+        ctx.fillStyle = color;
+        ctx.fillText(text, w / 2, h / 2, w - 40);
+      });
+    }
+
+    // ---------- Room shell ----------
+    const wallMat = new THREE.MeshStandardMaterial({ color: 0xe9e5dc, roughness: 0.92 });
+    const accentWallMat = new THREE.MeshStandardMaterial({ color: 0x2f3061, roughness: 0.85 });
+    const darkMat = new THREE.MeshStandardMaterial({ color: 0x1d1e26, roughness: 0.45, metalness: 0.3 });
+    const woodMat = new THREE.MeshStandardMaterial({ map: woodTexture(), roughness: 0.55 });
+
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(ROOM.w, ROOM.d), woodMat);
+    floor.rotation.x = -Math.PI / 2;
+    floor.receiveShadow = true;
+    scene.add(floor);
+
+    const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(ROOM.w, ROOM.d), new THREE.MeshStandardMaterial({ color: 0xf4f2ee, roughness: 1, emissive: 0xe8e4dc, emissiveIntensity: 0.4 }));
+    ceiling.rotation.x = Math.PI / 2;
+    ceiling.position.y = ROOM.h;
+    scene.add(ceiling);
+
+    for (const [name, { angle, half }] of Object.entries(WALLS)) {
+      const length = name === 'back' || name === 'front' ? ROOM.w : ROOM.d;
+      const wall = new THREE.Mesh(new THREE.PlaneGeometry(length, ROOM.h), name === 'left' ? accentWallMat : wallMat);
+      const { position } = wallPlacement(name, 0, ROOM.h / 2, 0);
+      wall.position.copy(position);
+      wall.rotation.y = angle;
+      wall.receiveShadow = true;
+      scene.add(wall);
+
+      const baseboard = new THREE.Mesh(new THREE.BoxGeometry(length, 0.14, 0.03), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.6 }));
+      baseboard.position.copy(wallPlacement(name, 0, 0.07, 0.015).position);
+      baseboard.rotation.y = angle;
+      scene.add(baseboard);
+    }
+
+    // Ceiling light panels
+    const lightPanelMat = new THREE.MeshBasicMaterial({ color: 0xfff8ec });
+    for (const x of [-3.5, 3.5]) {
+      for (const z of [-2, 2]) {
+        const panel = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 0.5), lightPanelMat);
+        panel.rotation.x = Math.PI / 2;
+        panel.position.set(x, ROOM.h - 0.01, z);
+        scene.add(panel);
+      }
+    }
+
+    // Rug
+    const rug = new THREE.Mesh(new THREE.CircleGeometry(2.6, 64), new THREE.MeshStandardMaterial({ color: 0x3a3c78, roughness: 1 }));
+    rug.rotation.x = -Math.PI / 2;
+    rug.position.set(0, 0.004, 0.6);
+    rug.receiveShadow = true;
+    scene.add(rug);
+    const rugRing = new THREE.Mesh(new THREE.RingGeometry(2.3, 2.42, 64), new THREE.MeshStandardMaterial({ color: 0x9ea3ff, roughness: 1 }));
+    rugRing.rotation.x = -Math.PI / 2;
+    rugRing.position.set(0, 0.006, 0.6);
+    scene.add(rugRing);
+
+    // ---------- Lights ----------
+    scene.add(new THREE.HemisphereLight(0xfff6ea, 0x6b5a48, 1.1));
+    const sun = new THREE.DirectionalLight(0xfff1dd, 0.9);
+    sun.position.set(2, ROOM.h - 0.2, 3);
+    sun.target.position.set(-1, 0, -1);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(1024, 1024);
+    Object.assign(sun.shadow.camera, { left: -6, right: 6, top: 6, bottom: -6, near: 0.5, far: 12 });
+    sun.shadow.bias = -0.0005;
+    scene.add(sun, sun.target);
+
+    // ---------- Wall labels ----------
+    function addLabel(texture, wall, offset, y, width, height, material = THREE.MeshStandardMaterial) {
+      const mesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(width, height),
+        new material({ map: texture, transparent: true })
+      );
+      const { position, angle } = wallPlacement(wall, offset, y, 0.02);
+      mesh.position.copy(position);
+      mesh.rotation.y = angle;
+      scene.add(mesh);
+      return mesh;
+    }
+    addLabel(textPanel('📷  Camera & Filmmaking'), 'back', 0, 3.55, 6, 0.75);
+    addLabel(textPanel('⚙️  Engineering, Robotics & CAD'), 'right', 0, 3.55, 6, 0.75);
+    const sign = addLabel(
+      textPanel('🎬 KenFilms', { size: 200, height: 320, color: '#ffffff', glow: '#9ea3ff' }),
+      'left', 0, 3.45, 5, 0.78, THREE.MeshBasicMaterial
+    );
+    sign.material.toneMapped = false;
+
+    // ---------- Frames ----------
+    const pickables = [];
+    const frameMat = new THREE.MeshStandardMaterial({ color: 0x1b1b22, roughness: 0.4, metalness: 0.2, emissive: 0x9ea3ff, emissiveIntensity: 0 });
+    const matboardMat = new THREE.MeshStandardMaterial({ color: 0xf6f3ec, roughness: 0.95 });
+    const fixtureMat = new THREE.MeshStandardMaterial({ color: 0x222228, roughness: 0.4, metalness: 0.6 });
+
+    function addSpotlight(target, normal) {
+      const pos = target.clone().addScaledVector(normal, 1.3).setY(ROOM.h - 0.08);
+      const spot = new THREE.SpotLight(0xfff0d8, 26, 0, 0.62, 0.65, 1.6);
+      spot.position.copy(pos);
+      spot.target.position.copy(target);
+      scene.add(spot, spot.target);
+
+      const fixture = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.1, 0.22, 20), fixtureMat);
+      fixture.position.copy(pos).setY(ROOM.h - 0.14);
+      fixture.lookAt(target);
+      fixture.rotateX(Math.PI / 2);
+      scene.add(fixture);
+    }
+
+    function buildFrame(item, texture, aspect) {
+      const maxW = 2.5, maxH = 1.45;
+      let w = maxW, h = maxW / aspect;
+      if (h > maxH) { h = maxH; w = maxH * aspect; }
+      const mat = 0.12, border = 0.07, depth = 0.06;
+      const outerW = w + 2 * (mat + border), outerH = h + 2 * (mat + border);
+
+      const group = new THREE.Group();
+      const frame = new THREE.Mesh(new THREE.BoxGeometry(outerW, outerH, depth), frameMat.clone());
+      frame.position.z = depth / 2;
+      frame.castShadow = true;
+      const board = new THREE.Mesh(new THREE.PlaneGeometry(w + 2 * mat, h + 2 * mat), matboardMat);
+      board.position.z = depth + 0.001;
+      const pictureMat = new THREE.MeshStandardMaterial({ map: texture, emissive: 0xffffff, emissiveMap: texture, emissiveIntensity: 0.18, roughness: 0.55 });
+      const picture = new THREE.Mesh(new THREE.PlaneGeometry(w, h), pictureMat);
+      picture.position.z = depth + 0.002;
+
+      const plaqueW = Math.min(1.8, outerW), plaqueH = plaqueW / 3.2;
+      const plaque = new THREE.Mesh(new THREE.BoxGeometry(plaqueW, plaqueH, 0.015), [
+        matboardMat, matboardMat, matboardMat, matboardMat,
+        new THREE.MeshStandardMaterial({ map: plaqueTexture(item), roughness: 0.7 }), matboardMat,
+      ]);
+      const plaqueY = -outerH / 2 - 0.12 - plaqueH / 2;
+      plaque.position.set(0, plaqueY, 0.008);
+      group.add(frame, board, picture, plaque);
+
+      const { position, normal, angle } = wallPlacement(item.wall, item.offset, FRAME_Y);
+      group.position.copy(position);
+      group.rotation.y = angle;
+      scene.add(group);
+
+      const bottom = plaqueY - plaqueH / 2;
+      Object.assign(item, {
+        group, frame, pictureMat, normal, basePos: position.clone(), hover: 0, hoverTarget: 0,
+        size: { w: outerW, h: outerH / 2 - bottom, cy: (outerH / 2 + bottom) / 2 },
+      });
+      for (const mesh of [frame, board, picture, plaque]) { mesh.userData.item = item; pickables.push(mesh); }
+    }
+
+    function buildDoor(item) {
+      const { position, normal, angle } = wallPlacement(item.wall, item.offset, 0);
+      const group = new THREE.Group();
+      const doorW = 1.15, doorH = 2.3;
+      const doorMat = new THREE.MeshStandardMaterial({ color: 0x2f3061, roughness: 0.6, emissive: 0x9ea3ff, emissiveIntensity: 0 });
+      const door = new THREE.Mesh(new THREE.BoxGeometry(doorW, doorH, 0.05), doorMat);
+      door.position.set(0, doorH / 2, 0.025);
+      const trimMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 });
+      const trims = [
+        [0.1, doorH + 0.1, -doorW / 2 - 0.05, (doorH + 0.1) / 2],
+        [0.1, doorH + 0.1, doorW / 2 + 0.05, (doorH + 0.1) / 2],
+        [doorW + 0.3, 0.1, 0, doorH + 0.05],
+      ].map(([tw, th, x, y]) => {
+        const m = new THREE.Mesh(new THREE.BoxGeometry(tw, th, 0.08), trimMat);
+        m.position.set(x, y, 0.04);
+        return m;
+      });
+      const knob = new THREE.Mesh(new THREE.SphereGeometry(0.045, 16, 12), new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.9, roughness: 0.25 }));
+      knob.position.set(doorW / 2 - 0.15, 1.05, 0.09);
+      const exitSign = new THREE.Mesh(
+        new THREE.PlaneGeometry(1.6, 0.32),
+        new THREE.MeshBasicMaterial({ map: textPanel('← List View', { width: 1024, height: 200, size: 110, color: '#7CFFB2', glow: '#2ecc71' }), transparent: true, toneMapped: false })
+      );
+      exitSign.position.set(0, doorH + 0.4, 0.02);
+      group.add(door, ...trims, knob, exitSign);
+      group.position.copy(position);
+      group.rotation.y = angle;
+      scene.add(group);
+
+      Object.assign(item, {
+        group, frame: door, normal, basePos: position.clone(), hover: 0, hoverTarget: 0,
+        size: { w: 2.2, h: 3.2, cy: 1.4 - FRAME_Y },
+      });
+      for (const mesh of [door, knob, exitSign]) { mesh.userData.item = item; pickables.push(mesh); }
+    }
+
+    for (const item of ITEMS) {
+      const anchor = wallPlacement(item.wall, item.offset, FRAME_Y);
+      item.anchor = anchor.position;
+      item.normal = anchor.normal;
+      item.size = { w: 3, h: 2.6, cy: -0.3 };
+      if (item.door) { buildDoor(item); continue; }
+      addSpotlight(anchor.position, anchor.normal);
+      if (item.icon === 'github') {
+        buildFrame(item, githubTexture(), 2);
+      } else {
+        texLoader.load(item.image, (tex) => {
+          tex.colorSpace = THREE.SRGBColorSpace;
+          tex.anisotropy = maxAniso;
+          buildFrame(item, tex, tex.image.width / tex.image.height);
+        });
+      }
+    }
+    if (!ITEMS.some((i) => i.image)) hideLoading();
+
+    // ---------- Props: camera on tripod + bench ----------
+    function limb(from, to, radius, material) {
+      const dir = to.clone().sub(from);
+      const mesh = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, dir.length(), 10), material);
+      mesh.position.copy(from).addScaledVector(dir, 0.5);
+      mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
+      mesh.castShadow = true;
+      return mesh;
+    }
+
+    const tripod = new THREE.Group();
+    const apex = new THREE.Vector3(0, 1.22, 0);
+    for (let i = 0; i < 3; i++) {
+      const a = (i / 3) * Math.PI * 2 + 0.3;
+      tripod.add(limb(apex, new THREE.Vector3(Math.cos(a) * 0.45, 0, Math.sin(a) * 0.45), 0.017, fixtureMat));
+    }
+    const head = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.06, 0.1, 20), fixtureMat);
+    head.position.y = 1.27;
+    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x2b2c33, roughness: 0.5, metalness: 0.2 });
+    const camBody = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.2, 0.17), bodyMat);
+    camBody.position.y = 1.42;
+    const lens = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.07, 0.24, 28), new THREE.MeshStandardMaterial({ color: 0x111114, roughness: 0.35, metalness: 0.5 }));
+    lens.rotation.x = Math.PI / 2;
+    lens.position.set(0.04, 1.42, -0.2);
+    const glass = new THREE.Mesh(new THREE.CircleGeometry(0.06, 28), new THREE.MeshStandardMaterial({ color: 0x0c1430, roughness: 0.05, metalness: 0.9, emissive: 0x3a3c78, emissiveIntensity: 0.4 }));
+    glass.position.set(0.04, 1.42, -0.321);
+    glass.rotation.y = Math.PI;
+    const screen = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.12, 0.02), bodyMat);
+    screen.position.set(0, 1.47, 0.1);
+    screen.rotation.x = -0.25;
+    const screenGlow = new THREE.Mesh(new THREE.PlaneGeometry(0.18, 0.1), new THREE.MeshBasicMaterial({ color: 0x6c6fa8 }));
+    screenGlow.position.set(0, 1.47, 0.111);
+    screenGlow.rotation.x = -0.25;
+    const tally = new THREE.Mesh(new THREE.SphereGeometry(0.014, 12, 8), new THREE.MeshBasicMaterial({ color: 0xff3344, toneMapped: false }));
+    tally.position.set(0.13, 1.53, -0.05);
+    camBody.castShadow = lens.castShadow = true;
+    tripod.add(head, camBody, lens, glass, screen, screenGlow, tally);
+    tripod.position.set(-4.4, 0, 3);
+    tripod.rotation.y = 0.55;
+    scene.add(tripod);
+
+    const bench = new THREE.Group();
+    const seat = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.08, 0.55), new THREE.MeshStandardMaterial({ map: woodMat.map, color: 0xc49a6c, roughness: 0.5 }));
+    seat.position.y = 0.45;
+    seat.castShadow = seat.receiveShadow = true;
+    bench.add(seat);
+    for (const x of [-1, 1]) {
+      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.41, 0.48), darkMat);
+      leg.position.set(x, 0.205, 0);
+      leg.castShadow = true;
+      bench.add(leg);
+    }
+    bench.position.set(0, 0, 0.6);
+    scene.add(bench);
+
+    // ---------- Navigation state ----------
+    const state = {
+      pos: START.pos.clone(), yaw: START.yaw, pitch: START.pitch,
+      view: { x: 0, y: 0 },
+      tween: null, focused: null, hovered: null,
+    };
+    const bounds = { x: ROOM.w / 2 - 0.7, z: ROOM.d / 2 - 0.7 };
+    const clampPos = (p) => {
+      p.x = THREE.MathUtils.clamp(p.x, -bounds.x, bounds.x);
+      p.z = THREE.MathUtils.clamp(p.z, -bounds.z, bounds.z);
+      return p;
+    };
+    const forwardDir = () => new THREE.Vector3(-Math.sin(state.yaw), 0, -Math.cos(state.yaw));
+    const rightDir = () => new THREE.Vector3(Math.cos(state.yaw), 0, -Math.sin(state.yaw));
+
+    const hint = document.getElementById('hint');
+    const fadeHint = () => hint.classList.add('faded');
+    setTimeout(fadeHint, 9000);
+
+    const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+
+    function startTween(toPos, toYaw, toPitch, toView) {
+      const dYaw = Math.atan2(Math.sin(toYaw - state.yaw), Math.cos(toYaw - state.yaw));
+      state.tween = {
+        t0: performance.now(), dur: reducedMotion ? 1 : 1100,
+        from: { pos: state.pos.clone(), yaw: state.yaw, pitch: state.pitch, view: { ...state.view } },
+        to: { pos: toPos, yaw: state.yaw + dYaw, pitch: toPitch, view: toView },
+      };
+    }
+
+    function updateTween(now) {
+      const tw = state.tween;
+      if (!tw) return;
+      const k = Math.min(1, (now - tw.t0) / tw.dur);
+      const e = ease(k);
+      state.pos.lerpVectors(tw.from.pos, tw.to.pos, e);
+      state.yaw = THREE.MathUtils.lerp(tw.from.yaw, tw.to.yaw, e);
+      state.pitch = THREE.MathUtils.lerp(tw.from.pitch, tw.to.pitch, e);
+      state.view.x = THREE.MathUtils.lerp(tw.from.view.x, tw.to.view.x, e);
+      state.view.y = THREE.MathUtils.lerp(tw.from.view.y, tw.to.view.y, e);
+      if (k >= 1) state.tween = null;
+    }
+
+    function applyViewOffset() {
+      const w = innerWidth, h = innerHeight;
+      if (Math.abs(state.view.x) < 0.5 && Math.abs(state.view.y) < 0.5) camera.clearViewOffset();
+      else camera.setViewOffset(w, h, state.view.x, state.view.y, w, h);
+    }
+
+    // ---------- Panel ----------
+    const panel = document.getElementById('panel');
+    const panelTitle = document.getElementById('panel-title');
+    const panelDesc = document.getElementById('panel-desc');
+    const panelTags = document.getElementById('panel-tags');
+    const panelLink = document.getElementById('panel-link');
+    const chips = document.getElementById('chips');
+
+    function setActiveChip(id) {
+      for (const a of chips.querySelectorAll('a')) a.classList.toggle('active', a.dataset.id === id);
+    }
+
+    function openPanel(item) {
+      panelTitle.textContent = item.title;
+      if (item.wip) panelTitle.insertAdjacentHTML('beforeend', ' <small>(Work in Progress)</small>');
+      panelDesc.textContent = item.desc;
+      panelTags.replaceChildren(...item.tags.map((t) => Object.assign(document.createElement('span'), { className: 'tag', textContent: t })));
+      panelTags.hidden = item.tags.length === 0;
+      panelLink.href = item.url;
+      panelLink.textContent = item.cta;
+      panel.hidden = false;
+      document.body.classList.add('panel-open');
+      void panel.offsetWidth;
+      panel.classList.add('open');
+    }
+
+    function closePanel() {
+      if (!state.focused) return;
+      state.focused = null;
+      setActiveChip(null);
+      panel.classList.remove('open');
+      document.body.classList.remove('panel-open');
+      setTimeout(() => { if (!state.focused) panel.hidden = true; }, 450);
+      const back = clampPos(state.pos.clone().add(forwardDir().multiplyScalar(-1.2)));
+      back.y = EYE;
+      startTween(back, state.yaw, START.pitch, { x: 0, y: 0 });
+    }
+
+    // Choose a camera position that frames the item in the screen area not covered by the info panel.
+    function focusItem(item) {
+      state.focused = item;
+      setActiveChip(item.id);
+      openPanel(item);
+      fadeHint();
+
+      const W = innerWidth, H = innerHeight;
+      const mobile = mobileLayout.matches;
+      const panelSize = mobile ? Math.min(panel.offsetHeight || 260, H * 0.55) + 24 : (panel.offsetWidth || 352) + 40;
+      const view = mobile ? { x: 0, y: panelSize / 2 } : { x: panelSize / 2, y: 0 };
+      const availW = mobile ? W : W - panelSize;
+      const availH = mobile ? H - panelSize : H;
+
+      const tanV = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+      const tanH = tanV * (W / H);
+      const margin = 1.25;
+      const distForH = (item.size.h * margin) / (2 * tanV * (availH / H));
+      const distForW = (item.size.w * margin) / (2 * tanH * (availW / W));
+      const span = item.wall === 'back' || item.wall === 'front' ? ROOM.d : ROOM.w;
+      const dist = THREE.MathUtils.clamp(Math.max(distForH, distForW), 1.6, span - 1.2);
+
+      const target = item.anchor.clone();
+      target.y += item.size.cy;
+      const toPos = target.clone().addScaledVector(item.normal, dist);
+      toPos.y = Math.max(target.y, 1.1);
+      const toYaw = Math.atan2(item.normal.x, item.normal.z);
+      const toPitch = Math.atan2(target.y - toPos.y, dist);
+      startTween(toPos, toYaw, toPitch, view);
+    }
+
+    document.getElementById('panel-close').addEventListener('click', closePanel);
+    chips.addEventListener('click', (e) => {
+      const a = e.target.closest('a[data-id]');
+      if (!a) return;
+      e.preventDefault();
+      const item = ITEMS.find((i) => i.id === a.dataset.id);
+      if (state.focused === item) closePanel();
+      else focusItem(item);
+    });
+
+    // ---------- Pointer / keyboard input ----------
+    const raycaster = new THREE.Raycaster();
+    const ndc = new THREE.Vector2();
+    function syncCamera() {
+      camera.position.copy(state.pos);
+      camera.rotation.set(state.pitch, state.yaw, 0);
+      applyViewOffset();
+    }
+
+    function pick(clientX, clientY) {
+      syncCamera();
+      scene.updateMatrixWorld();
+      camera.updateMatrixWorld();
+      ndc.set((clientX / innerWidth) * 2 - 1, -(clientY / innerHeight) * 2 + 1);
+      raycaster.setFromCamera(ndc, camera);
+      const hit = raycaster.intersectObjects([...pickables, floor, ...scene.children.filter((o) => o.isMesh && o.geometry.type === 'PlaneGeometry')], false)[0];
+      return hit?.object.userData.item ?? null;
+    }
+
+    function setHovered(item) {
+      if (state.hovered === item) return;
+      if (state.hovered) state.hovered.hoverTarget = 0;
+      state.hovered = item;
+      if (item) item.hoverTarget = 1;
+      canvas.classList.toggle('hovering', !!item);
+    }
+
+    const drag = { active: false, id: null, x: 0, y: 0, moved: 0 };
+    canvas.addEventListener('pointerdown', (e) => {
+      drag.active = true; drag.id = e.pointerId; drag.x = e.clientX; drag.y = e.clientY; drag.moved = 0;
+      try { canvas.setPointerCapture(e.pointerId); } catch { /* pointer already gone */ }
+    });
+    canvas.addEventListener('pointermove', (e) => {
+      if (drag.active && e.pointerId === drag.id) {
+        const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+        drag.x = e.clientX; drag.y = e.clientY;
+        drag.moved += Math.abs(dx) + Math.abs(dy);
+        if (drag.moved > 6) {
+          canvas.classList.add('dragging');
+          state.tween = null;
+          const speed = e.pointerType === 'touch' ? 0.005 : 0.0035;
+          state.yaw += dx * speed;
+          state.pitch = THREE.MathUtils.clamp(state.pitch + dy * speed, -1.2, 1.2);
+          fadeHint();
+        }
+      } else if (e.pointerType === 'mouse') {
+        setHovered(pick(e.clientX, e.clientY));
+      }
+    });
+    const endDrag = (e) => {
+      if (!drag.active || e.pointerId !== drag.id) return;
+      drag.active = false;
+      canvas.classList.remove('dragging');
+      if (e.type === 'pointerup' && drag.moved <= 6) {
+        const item = pick(e.clientX, e.clientY);
+        if (item && item !== state.focused) focusItem(item);
+        else if (!item) closePanel();
+      }
+    };
+    canvas.addEventListener('pointerup', endDrag);
+    canvas.addEventListener('pointercancel', endDrag);
+    canvas.addEventListener('pointerleave', () => setHovered(null));
+
+    canvas.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      state.tween = null;
+      const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? innerHeight : 1;
+      const step = THREE.MathUtils.clamp(-e.deltaY * unit * 0.004, -0.6, 0.6);
+      clampPos(state.pos.addScaledVector(forwardDir(), step));
+      fadeHint();
+    }, { passive: false });
+
+    const keys = new Set();
+    const MOVE_KEYS = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
+    addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { closePanel(); return; }
+      if (!MOVE_KEYS.has(e.code) || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (document.activeElement && document.activeElement !== document.body && document.activeElement !== canvas) return;
+      e.preventDefault();
+      keys.add(e.code);
+      state.tween = null;
+      fadeHint();
+    });
+    addEventListener('keyup', (e) => keys.delete(e.code));
+    addEventListener('blur', () => keys.clear());
+
+    function updateKeys(dt) {
+      if (!keys.size) return;
+      const axis = (a, b) => (keys.has(a) ? 1 : 0) - (keys.has(b) ? 1 : 0);
+      const fwd = axis('KeyW', 'KeyS') || axis('ArrowUp', 'ArrowDown');
+      const strafe = axis('KeyD', 'KeyA');
+      const turn = axis('ArrowLeft', 'ArrowRight');
+      state.yaw += turn * 1.8 * dt;
+      const move = forwardDir().multiplyScalar(fwd).addScaledVector(rightDir(), strafe);
+      if (move.lengthSq() > 0) clampPos(state.pos.addScaledVector(move.normalize(), 3 * dt));
+      state.pitch += (0 - state.pitch) * Math.min(1, dt * 2) * (fwd || strafe ? 1 : 0);
+    }
+
+    addEventListener('resize', () => {
+      camera.aspect = innerWidth / innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight, false);
+      if (state.focused) focusItem(state.focused);
+    });
+
+    // ---------- Loop ----------
+    const clock = new THREE.Clock();
+    renderer.setAnimationLoop((now) => {
+      const dt = Math.min(clock.getDelta(), 0.1);
+      updateTween(now);
+      updateKeys(dt);
+
+      for (const item of ITEMS) {
+        if (!item.group) continue;
+        item.hover += (item.hoverTarget - item.hover) * Math.min(1, dt * 10);
+        item.group.position.copy(item.basePos).addScaledVector(item.normal, 0.05 * item.hover);
+        item.frame.material.emissiveIntensity = 0.35 * item.hover;
+        if (item.pictureMat) item.pictureMat.emissiveIntensity = 0.18 + 0.2 * item.hover;
+      }
+      tally.visible = Math.floor(now / 700) % 2 === 0;
+
+      syncCamera();
+      renderer.render(scene, camera);
+    });
+  </script>
 </body>
 </html>

@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KenFilms – All Projects (List View)</title>
+  <meta name="description" content="Open-source projects by Ken Friedl (KenFilms): Bluetooth remotes for the Blackmagic Pocket Cinema Camera 6K, ESP32 / M5Stack firmware, and a FreeCAD model of a miniature beam steam engine.">
+  <meta name="author" content="Ken Friedl">
+  <meta name="robots" content="index, follow">
+  <meta name="theme-color" content="#2f3061">
+  <link rel="canonical" href="https://kenfilms.github.io/list.html">
+
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="KenFilms – Open-Source Projects">
+  <meta property="og:description" content="Bluetooth camera remotes for the BMPCC6K, ESP32 / M5Stack firmware and FreeCAD engineering models.">
+  <meta property="og:url" content="https://kenfilms.github.io/list.html">
+  <meta property="og:image" content="https://kenfilms.github.io/MagicPilot_Remote/images/social-preview.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>">
+
+  <style>
+    :root {
+      --bg: #f6f7fb;
+      --fg: #1f2330;
+      --muted: #5b6275;
+      --accent: #2f3061;
+      --card: #ffffff;
+      --border: #e2e5ee;
+      --tag-bg: #eceefe;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #12141c;
+        --fg: #e8eaf1;
+        --muted: #a3a9ba;
+        --accent: #9ea3ff;
+        --card: #1b1e29;
+        --border: #2c3040;
+        --tag-bg: #262a3d;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      color: var(--fg);
+      background: var(--bg);
+    }
+    a { color: var(--accent); }
+    header {
+      background: linear-gradient(160deg, #2f3061 0%, #6c6fa8 100%);
+      color: #fff;
+      padding: 4rem 1.25rem 3rem;
+      text-align: center;
+    }
+    header h1 { margin: 0 0 .5rem; font-size: clamp(2rem, 5vw, 3rem); }
+    header p { margin: 0 auto 1.5rem; max-width: 40rem; font-size: 1.15rem; opacity: .92; }
+    .btn {
+      display: inline-block;
+      padding: .6rem 1.2rem;
+      border-radius: 999px;
+      font-weight: 600;
+      text-decoration: none;
+      border: 2px solid #fff;
+      color: #fff;
+    }
+    .btn:hover { opacity: .85; }
+    .btn + .btn { margin-left: .5rem; }
+    .btn-solid { background: #fff; color: #2f3061; }
+    main { max-width: 72rem; margin: 0 auto; padding: 0 1.25rem 3rem; }
+    h2 { margin: 2.5rem 0 1rem; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
+      gap: 1.25rem;
+    }
+    .card {
+      display: flex;
+      flex-direction: column;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      text-decoration: none;
+      color: inherit;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, .08);
+      transition: transform .15s ease, box-shadow .15s ease;
+    }
+    .card:hover { transform: translateY(-3px); box-shadow: 0 12px 28px rgba(0, 0, 0, .15); }
+    .card img { width: 100%; aspect-ratio: 2 / 1; object-fit: cover; display: block; background: #2f3061; }
+    .card .body { padding: 1rem 1.25rem 1.25rem; display: flex; flex-direction: column; flex: 1; }
+    .card h3 { margin: 0 0 .4rem; font-size: 1.2rem; }
+    .card p { margin: 0 0 1rem; color: var(--muted); font-size: .95rem; flex: 1; }
+    .tags { display: flex; flex-wrap: wrap; gap: .4rem; }
+    .tag { background: var(--tag-bg); border-radius: 999px; padding: .15rem .6rem; font-size: .8rem; }
+    .link { margin-top: .9rem; font-weight: 600; color: var(--accent); }
+    footer { text-align: center; color: var(--muted); font-size: .9rem; padding: 2rem 1rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🎬 KenFilms</h1>
+    <p>Open-source projects by <strong>Ken Friedl</strong>: Bluetooth remotes for the Blackmagic Pocket Cinema Camera, ESP32 / M5Stack firmware, and engineering CAD models.</p>
+    <a class="btn" href="https://github.com/KenFilms">GitHub profile</a>
+    <a class="btn btn-solid" href="./">Enter the 3D room →</a>
+  </header>
+
+  <main>
+    <h2 id="camera">📷 Camera &amp; Filmmaking</h2>
+    <div class="grid">
+      <a class="card" href="https://kenfilms.github.io/MagicPilot_Remote/">
+        <img src="https://repository-images.githubusercontent.com/1406251765/aa2f91ec-a721-4e52-a0d3-fff6c9b24bda" alt="MagicPilot Remote social preview" loading="lazy">
+        <div class="body">
+          <h3>MagicPilot Remote</h3>
+          <p>Open-source Bluetooth touchscreen remote for the Blackmagic Pocket Cinema Camera 6K. ESP32 firmware for M5Stack Core2 / CoreS3: focus, ISO, shutter, white balance, iris, record and presets.</p>
+          <div class="tags"><span class="tag">ESP32</span><span class="tag">M5Stack</span><span class="tag">BLE</span><span class="tag">BMPCC6K</span></div>
+          <span class="link">Visit project site →</span>
+        </div>
+      </a>
+
+      <a class="card" href="https://github.com/KenFilms/MagicPilot_Remote_Stick">
+        <img src="https://repository-images.githubusercontent.com/1406429375/fc8ec531-8fde-48f7-a548-a9117859a4ac" alt="MagicPilot Remote Stick social preview" loading="lazy">
+        <div class="body">
+          <h3>MagicPilot Remote Stick</h3>
+          <p>A pocket-sized Bluetooth LE remote for the original M5Stick controlling the BMPCC6K. Live camera timecode, one-button REC/STOP and a tiny 80×160 display.</p>
+          <div class="tags"><span class="tag">M5Stick</span><span class="tag">BLE</span><span class="tag">Timecode</span><span class="tag">BMPCC6K</span></div>
+          <span class="link">View on GitHub →</span>
+        </div>
+      </a>
+
+      <a class="card" href="https://github.com/KenFilms/MagicFocusEF_wip">
+        <img src="https://repository-images.githubusercontent.com/456947968/2ba1ab63-b523-4501-ba07-081348ef1455" alt="MagicFocus EF social preview" loading="lazy">
+        <div class="body">
+          <h3>MagicFocus EF <small>(Work in Progress)</small></h3>
+          <p>LiDAR-based autofocus for Canon EF lenses on the Blackmagic Pocket Cinema Camera 6K, using the BlueMagic32 library.</p>
+          <div class="tags"><span class="tag">LiDAR</span><span class="tag">Autofocus</span><span class="tag">Canon EF</span><span class="tag">BMPCC6K</span></div>
+          <span class="link">View on GitHub →</span>
+        </div>
+      </a>
+    </div>
+
+    <h2 id="engineering">⚙️ Engineering, Robotics &amp; CAD</h2>
+    <div class="grid">
+      <a class="card" href="https://kenfilms.github.io/Miniature-Beam-Steam-Engine-CAD/">
+        <img src="https://repository-images.githubusercontent.com/646574552/c2997070-df61-457d-b57e-3476d3eb981c" alt="Miniature Beam Steam Engine social preview" loading="lazy">
+        <div class="body">
+          <h3>Miniature Beam Steam Engine</h3>
+          <p>Free 3D CAD model of a miniature beam steam engine made in FreeCAD with the Assembly4 workbench, featured in an educational YouTube video.</p>
+          <div class="tags"><span class="tag">FreeCAD</span><span class="tag">Assembly4</span><span class="tag">Steam engine</span></div>
+          <span class="link">Visit project site →</span>
+        </div>
+      </a>
+      <a class="card" href="https://github.com/KenFilms/R2D2_ROS">
+        <img src="https://repository-images.githubusercontent.com/452084331/b8102ea8-1516-4e8f-81cf-b44f0ae6bcc1" alt="R2D2 ROS social preview" loading="lazy">
+        <div class="body">
+          <h3>R2D2 ROS <small>(Work in Progress)</small></h3>
+          <p>A 1:2 scale De Agostini R2D2 modified to work with ROS, with LiDAR-based SLAM, offline voice commands using Julius, and face recognition using a Full HD camera.</p>
+          <div class="tags"><span class="tag">ROS</span><span class="tag">LiDAR</span><span class="tag">SLAM</span><span class="tag">Robotics</span></div>
+          <span class="link">View on GitHub →</span>
+        </div>
+      </a>
+    </div>
+  </main>
+
+  <footer>
+    © Ken Friedl · <a href="https://github.com/KenFilms">github.com/KenFilms</a>
+  </footer>
+</body>
+</html>
