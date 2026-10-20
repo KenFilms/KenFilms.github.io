@@ -391,14 +391,32 @@
       });
     }
 
+    // Some browsers (notably WebKit) mis-align emoji text with textAlign 'center', so draw left-aligned
+    // on a scratch canvas, measure the actual pixel bounds, then copy it centred (and shrunk to fit if needed).
     function textPanel(text, { width = 2048, height = 256, size = 120, color = '#2f3061', weight = 700, glow } = {}) {
       return canvasTexture(width, height, (ctx, w, h) => {
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.font = `${weight} ${size}px ${FONT}`;
-        if (glow) { ctx.shadowColor = glow; ctx.shadowBlur = 40; }
-        ctx.fillStyle = color;
-        ctx.fillText(text, w / 2, h / 2, w - 40);
+        const scratch = document.createElement('canvas');
+        scratch.width = w * 2;
+        scratch.height = h;
+        const s = scratch.getContext('2d', { willReadFrequently: true });
+        s.textAlign = 'left';
+        s.textBaseline = 'middle';
+        s.font = `${weight} ${size}px ${FONT}`;
+        if (glow) { s.shadowColor = glow; s.shadowBlur = 40; }
+        s.fillStyle = color;
+        s.fillText(text, glow ? 80 : 10, h / 2);
+
+        const { data } = s.getImageData(0, 0, scratch.width, h);
+        let minX = scratch.width, maxX = -1;
+        for (let y = 0; y < h; y++) {
+          const row = y * scratch.width * 4;
+          for (let x = 0; x < minX; x++) if (data[row + x * 4 + 3]) { minX = x; break; }
+          for (let x = scratch.width - 1; x > maxX; x--) if (data[row + x * 4 + 3]) { maxX = x; break; }
+        }
+        if (maxX < minX) return;
+        const srcW = maxX - minX + 1;
+        const dstW = Math.min(srcW, w - 20);
+        ctx.drawImage(scratch, minX, 0, srcW, h, (w - dstW) / 2, 0, dstW, h);
       });
     }
 
