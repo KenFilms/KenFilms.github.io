@@ -190,7 +190,7 @@
   <script type="module">
     import * as THREE from 'three';
 
-    const ROOM = { w: 14, d: 12, h: 4.2 };
+    const ROOM = { w: 14, d: 12, h: 5.6 };
     const EYE = 1.6;
     const FRAME_Y = 1.8;
     const START = { pos: new THREE.Vector3(0, EYE, 4.2), yaw: 0, pitch: -0.04 };
@@ -431,10 +431,77 @@
     floor.receiveShadow = true;
     scene.add(floor);
 
-    const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(ROOM.w, ROOM.d), new THREE.MeshStandardMaterial({ color: 0xf4f2ee, roughness: 1, emissive: 0xe8e4dc, emissiveIntensity: 0.4 }));
+    // Ceiling with a skylight opening (shape Y maps to world Z after the rotation).
+    const SKYLIGHT = { w: 5, d: 3.6, z: 0.6, well: 0.7, cols: 4, rows: 3 };
+    const ceilingMat = new THREE.MeshStandardMaterial({ color: 0xf4f2ee, roughness: 1, emissive: 0xe8e4dc, emissiveIntensity: 0.4, shadowSide: THREE.DoubleSide });
+    const ceilingShape = new THREE.Shape();
+    ceilingShape.moveTo(-ROOM.w / 2, -ROOM.d / 2);
+    ceilingShape.lineTo(ROOM.w / 2, -ROOM.d / 2);
+    ceilingShape.lineTo(ROOM.w / 2, ROOM.d / 2);
+    ceilingShape.lineTo(-ROOM.w / 2, ROOM.d / 2);
+    const skyHole = new THREE.Path();
+    const sx0 = -SKYLIGHT.w / 2, sx1 = SKYLIGHT.w / 2, sz0 = SKYLIGHT.z - SKYLIGHT.d / 2, sz1 = SKYLIGHT.z + SKYLIGHT.d / 2;
+    skyHole.moveTo(sx0, sz0); skyHole.lineTo(sx0, sz1); skyHole.lineTo(sx1, sz1); skyHole.lineTo(sx1, sz0);
+    ceilingShape.holes.push(skyHole);
+    const ceiling = new THREE.Mesh(new THREE.ShapeGeometry(ceilingShape), ceilingMat);
     ceiling.rotation.x = Math.PI / 2;
     ceiling.position.y = ROOM.h;
+    ceiling.castShadow = true;
     scene.add(ceiling);
+
+    // Light well: four inward-facing sides between the ceiling and the glass.
+    const wellMat = new THREE.MeshStandardMaterial({ color: 0xf4f2ee, roughness: 1, shadowSide: THREE.DoubleSide });
+    for (const [len, x, z, rotY] of [
+      [SKYLIGHT.w, 0, sz0, 0], [SKYLIGHT.w, 0, sz1, Math.PI],
+      [SKYLIGHT.d, sx0, SKYLIGHT.z, Math.PI / 2], [SKYLIGHT.d, sx1, SKYLIGHT.z, -Math.PI / 2],
+    ]) {
+      const side = new THREE.Mesh(new THREE.PlaneGeometry(len, SKYLIGHT.well), wellMat);
+      side.position.set(x, ROOM.h + SKYLIGHT.well / 2, z);
+      side.rotation.y = rotY;
+      side.castShadow = side.receiveShadow = true;
+      scene.add(side);
+    }
+
+    function skyTexture() {
+      return canvasTexture(1024, 768, (ctx, w, h) => {
+        const g = ctx.createLinearGradient(0, 0, w, h);
+        g.addColorStop(0, '#9cc8f2');
+        g.addColorStop(1, '#5d9ee6');
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, w, h);
+        for (let i = 0; i < 14; i++) {
+          const x = Math.random() * w, y = Math.random() * h;
+          for (let j = 0; j < 6; j++) {
+            const r = 40 + Math.random() * 70;
+            const px = x + (Math.random() - 0.5) * 160, py = y + (Math.random() - 0.5) * 50;
+            const cg = ctx.createRadialGradient(px, py, 0, px, py, r);
+            cg.addColorStop(0, 'rgba(255, 255, 255, .55)');
+            cg.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            ctx.fillStyle = cg;
+            ctx.fillRect(px - r, py - r, r * 2, r * 2);
+          }
+        }
+      });
+    }
+    const skyGlass = new THREE.Mesh(
+      new THREE.PlaneGeometry(SKYLIGHT.w, SKYLIGHT.d),
+      new THREE.MeshBasicMaterial({ map: skyTexture(), toneMapped: false })
+    );
+    skyGlass.rotation.x = Math.PI / 2;
+    skyGlass.position.set(0, ROOM.h + SKYLIGHT.well, SKYLIGHT.z);
+    scene.add(skyGlass);
+
+    // Glazing bars: perimeter frame plus a grid of mullions that throw a pattern of shadows.
+    const barMat = new THREE.MeshStandardMaterial({ color: 0x2b2d36, roughness: 0.5, metalness: 0.4 });
+    const barY = ROOM.h + SKYLIGHT.well - 0.04;
+    const addBar = (w, d, x, z) => {
+      const bar = new THREE.Mesh(new THREE.BoxGeometry(w, 0.07, d), barMat);
+      bar.position.set(x, barY, z);
+      bar.castShadow = true;
+      scene.add(bar);
+    };
+    for (let i = 0; i <= SKYLIGHT.cols; i++) addBar(0.07, SKYLIGHT.d, sx0 + (i / SKYLIGHT.cols) * SKYLIGHT.w, SKYLIGHT.z);
+    for (let j = 0; j <= SKYLIGHT.rows; j++) addBar(SKYLIGHT.w, 0.07, 0, sz0 + (j / SKYLIGHT.rows) * SKYLIGHT.d);
 
     for (const [name, { angle, half }] of Object.entries(WALLS)) {
       const length = name === 'back' || name === 'front' ? ROOM.w : ROOM.d;
@@ -443,6 +510,7 @@
       wall.position.copy(position);
       wall.rotation.y = angle;
       wall.receiveShadow = true;
+      wall.castShadow = true;
       scene.add(wall);
 
       const baseboard = new THREE.Mesh(new THREE.BoxGeometry(length, 0.14, 0.03), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.6 }));
@@ -453,7 +521,7 @@
 
     // Ceiling light panels
     const lightPanelMat = new THREE.MeshBasicMaterial({ color: 0xfff8ec });
-    for (const x of [-3.5, 3.5]) {
+    for (const x of [-4.7, 4.7]) {
       for (const z of [-2, 2]) {
         const panel = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 0.5), lightPanelMat);
         panel.rotation.x = Math.PI / 2;
@@ -462,27 +530,104 @@
       }
     }
 
-    // Rug
-    const rug = new THREE.Mesh(new THREE.CircleGeometry(2.6, 64), new THREE.MeshStandardMaterial({ color: 0x3a3c78, roughness: 1 }));
+    // Rug: oval plush pile with a plain cream border. Canvas pixels are square in world space,
+    // so border insets are given in metres and stay an even width all the way round.
+    const RUG = { w: 7.2, d: 5.6, z: 0.6, thickness: 0.018 };
+
+    function rugTexture() {
+      const W = 2048, H = Math.round(W * RUG.d / RUG.w), PX = W / RUG.w;
+      const cx = W / 2, cy = H / 2, rx = W / 2 - 1, ry = H / 2 - 1;
+      const ellipse = (ctx, insetM) => {
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, rx - insetM * PX, ry - insetM * PX, 0, 0, Math.PI * 2);
+      };
+      const fillEllipse = (ctx, insetM, style) => { ellipse(ctx, insetM); ctx.fillStyle = style; ctx.fill(); };
+
+      return canvasTexture(W, H, (ctx) => {
+        fillEllipse(ctx, 0, '#1a1f45');      // binding
+        fillEllipse(ctx, 0.03, '#d8c59a');   // plain cream border band
+        const field = ctx.createRadialGradient(cx, cy, 0, cx, cy, rx);
+        field.addColorStop(0, '#27316f');
+        field.addColorStop(1, '#171d4a');
+        fillEllipse(ctx, 0.2, field);
+
+        // Faint tonal sunburst in the pile, as on large oval office rugs.
+        ctx.save();
+        ellipse(ctx, 0.365); ctx.clip();
+        const rays = 64;
+        for (let i = 0; i < rays; i += 2) {
+          const a0 = (i / rays) * Math.PI * 2, a1 = ((i + 1) / rays) * Math.PI * 2;
+          ctx.beginPath();
+          ctx.moveTo(cx, cy);
+          ctx.arc(cx, cy, W, a0, a1);
+          ctx.closePath();
+          ctx.fillStyle = 'rgba(255, 255, 255, .028)';
+          ctx.fill();
+        }
+        ctx.restore();
+
+        // Fibre noise for a woven, slightly uneven look.
+        const img = ctx.getImageData(0, 0, W, H), d = img.data;
+        for (let i = 0; i < d.length; i += 4) {
+          if (!d[i + 3]) continue;
+          const n = (Math.random() - 0.5) * 18;
+          d[i] += n; d[i + 1] += n; d[i + 2] += n;
+        }
+        ctx.putImageData(img, 0, 0);
+      });
+    }
+
+    function pileBumpTexture() {
+      const tex = canvasTexture(256, 256, (ctx, w, h) => {
+        const img = ctx.createImageData(w, h);
+        for (let i = 0; i < img.data.length; i += 4) {
+          const v = 110 + Math.random() * 145;
+          img.data[i] = img.data[i + 1] = img.data[i + 2] = v;
+          img.data[i + 3] = 255;
+        }
+        ctx.putImageData(img, 0, 0);
+      });
+      tex.colorSpace = THREE.NoColorSpace;
+      tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+      tex.repeat.set(RUG.w / 0.3, RUG.d / 0.3);
+      return tex;
+    }
+
+    const rugMat = new THREE.MeshPhysicalMaterial({
+      map: rugTexture(), alphaTest: 0.5,
+      bumpMap: pileBumpTexture(), bumpScale: 0.6,
+      roughness: 0.95, sheen: 1, sheenRoughness: 0.5, sheenColor: new THREE.Color(0x7d88c8),
+    });
+    const rug = new THREE.Mesh(new THREE.PlaneGeometry(RUG.w, RUG.d), rugMat);
     rug.rotation.x = -Math.PI / 2;
-    rug.position.set(0, 0.004, 0.6);
+    rug.position.set(0, RUG.thickness + 0.001, RUG.z);
     rug.receiveShadow = true;
     scene.add(rug);
-    const rugRing = new THREE.Mesh(new THREE.RingGeometry(2.3, 2.42, 64), new THREE.MeshStandardMaterial({ color: 0x9ea3ff, roughness: 1 }));
-    rugRing.rotation.x = -Math.PI / 2;
-    rugRing.position.set(0, 0.006, 0.6);
-    scene.add(rugRing);
+    const rugEdge = new THREE.Mesh(
+      new THREE.CylinderGeometry(1, 1, RUG.thickness, 160, 1, true),
+      new THREE.MeshStandardMaterial({ color: 0x141836, roughness: 1 })
+    );
+    rugEdge.scale.set(RUG.w / 2, 1, RUG.d / 2);
+    rugEdge.position.set(0, RUG.thickness / 2, RUG.z);
+    scene.add(rugEdge);
 
     // ---------- Lights ----------
-    scene.add(new THREE.HemisphereLight(0xfff6ea, 0x6b5a48, 1.1));
-    const sun = new THREE.DirectionalLight(0xfff1dd, 0.9);
-    sun.position.set(2, ROOM.h - 0.2, 3);
-    sun.target.position.set(-1, 0, -1);
+    scene.add(new THREE.HemisphereLight(0xfff6ea, 0x6b5a48, 1.15));
+    // Sunlight from outside: the ceiling blocks it everywhere except through the skylight.
+    const sunDir = new THREE.Vector3(-0.2, 1, -0.15).normalize();
+    const sun = new THREE.DirectionalLight(0xfff1dd, 2.6);
+    sun.target.position.set(0, 0, SKYLIGHT.z);
+    sun.position.copy(sun.target.position).addScaledVector(sunDir, 16);
     sun.castShadow = true;
-    sun.shadow.mapSize.set(1024, 1024);
-    Object.assign(sun.shadow.camera, { left: -6, right: 6, top: 6, bottom: -6, near: 0.5, far: 12 });
-    sun.shadow.bias = -0.0005;
+    sun.shadow.mapSize.set(2048, 2048);
+    Object.assign(sun.shadow.camera, { left: -10, right: 10, top: 10, bottom: -10, near: 4, far: 30 });
+    sun.shadow.bias = -0.0004;
+    sun.shadow.normalBias = 0.02;
     scene.add(sun, sun.target);
+
+    function receiveShadows(root) {
+      root.traverse((o) => { if (o.isMesh) o.receiveShadow = true; });
+    }
 
     // ---------- Wall labels ----------
     function addLabel(texture, wall, offset, y, width, height, material = THREE.MeshStandardMaterial) {
@@ -496,11 +641,11 @@
       scene.add(mesh);
       return mesh;
     }
-    addLabel(textPanel('📷  Camera & Filmmaking'), 'back', 0, 3.55, 6, 0.75);
-    addLabel(textPanel('⚙️  Engineering, Robotics & CAD'), 'right', 0, 3.55, 6, 0.75);
+    addLabel(textPanel('📷  Camera & Filmmaking'), 'back', 0, 3.8, 6, 0.75);
+    addLabel(textPanel('⚙️  Engineering, Robotics & CAD'), 'right', 0, 3.8, 6, 0.75);
     const sign = addLabel(
       textPanel('🎬 KenFilms', { size: 200, height: 320, color: '#ffffff', glow: '#9ea3ff' }),
-      'left', 0, 3.45, 5, 0.78, THREE.MeshBasicMaterial
+      'left', 0, 3.75, 5, 0.78, THREE.MeshBasicMaterial
     );
     sign.material.toneMapped = false;
 
@@ -510,9 +655,13 @@
     const matboardMat = new THREE.MeshStandardMaterial({ color: 0xf6f3ec, roughness: 0.95 });
     const fixtureMat = new THREE.MeshStandardMaterial({ color: 0x222228, roughness: 0.4, metalness: 0.6 });
 
+    // Spot brightness and beam are derived from the throw distance so each frame gets the same
+    // ~1.9 m pool of light regardless of ceiling height.
     function addSpotlight(target, normal) {
-      const pos = target.clone().addScaledVector(normal, 1.3).setY(ROOM.h - 0.08);
-      const spot = new THREE.SpotLight(0xfff0d8, 26, 0, 0.62, 0.65, 1.6);
+      const pos = target.clone().addScaledVector(normal, 1.6).setY(ROOM.h - 0.08);
+      const dist = pos.distanceTo(target);
+      const angle = Math.atan(1.9 / dist);
+      const spot = new THREE.SpotLight(0xfff0d8, 26 * Math.pow(dist / 2.67, 1.6), 0, angle, 0.65, 1.6);
       spot.position.copy(pos);
       spot.target.position.copy(target);
       scene.add(spot, spot.target);
@@ -553,6 +702,7 @@
       const { position, normal, angle } = wallPlacement(item.wall, item.offset, FRAME_Y);
       group.position.copy(position);
       group.rotation.y = angle;
+      receiveShadows(group);
       scene.add(group);
 
       const bottom = plaqueY - plaqueH / 2;
@@ -907,6 +1057,7 @@
     });
 
     // ---------- Loop ----------
+    receiveShadows(scene);
     const clock = new THREE.Clock();
     renderer.setAnimationLoop((now) => {
       const dt = Math.min(clock.getDelta(), 0.1);
