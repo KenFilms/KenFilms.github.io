@@ -166,11 +166,11 @@
 
   <nav class="chips" id="chips" aria-label="Projects">
     <a href="https://kenfilms.github.io/MagicPilot_Remote/" data-id="magicpilot-remote">MagicPilot Remote</a>
-    <a href="https://github.com/KenFilms/MagicPilot_Remote_Stick" data-id="magicpilot-remote-stick">Remote Stick</a>
+    <a href="https://github.com/KenFilms/MagicPilot_Remote_Stick" data-id="magicpilot-remote-stick" target="_blank" rel="noopener">Remote Stick</a>
     <a href="https://kenfilms.github.io/MagicFocus/" data-id="magicfocus">MagicFocus</a>
     <a href="https://kenfilms.github.io/Miniature-Beam-Steam-Engine-CAD/" data-id="beam-steam-engine">Beam Steam Engine</a>
-    <a href="https://github.com/KenFilms/R2D2_ROS" data-id="r2d2-ros">R2D2 ROS</a>
-    <a href="https://github.com/KenFilms" data-id="github">GitHub</a>
+    <a href="https://github.com/KenFilms/R2D2_ROS" data-id="r2d2-ros" target="_blank" rel="noopener">R2D2 ROS</a>
+    <a href="https://github.com/KenFilms" data-id="github" target="_blank" rel="noopener">GitHub</a>
   </nav>
 
   <aside class="panel" id="panel" hidden aria-live="polite" aria-labelledby="panel-title">
@@ -891,6 +891,10 @@
       panelTags.replaceChildren(...item.tags.map((t) => Object.assign(document.createElement('span'), { className: 'tag', textContent: t })));
       panelTags.hidden = item.tags.length === 0;
       panelLink.href = item.url;
+      // Off-site pages (e.g. github.com) refuse to load inside frames, so open them in a new tab.
+      const external = panelLink.hostname !== location.hostname;
+      panelLink.target = external ? '_blank' : '';
+      panelLink.rel = external ? 'noopener' : '';
       panelLink.textContent = item.cta;
       panel.hidden = false;
       document.body.classList.add('panel-open');
