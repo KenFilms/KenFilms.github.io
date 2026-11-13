@@ -6,3 +6,4 @@ Sitemap: https://kenfilms.github.io/Miniature-Beam-Steam-Engine-CAD/sitemap.xml
 Sitemap: https://kenfilms.github.io/MagicPilot_Remote/sitemap.xml
 Sitemap: https://kenfilms.github.io/MagicFocus/sitemap.xml
 Sitemap: https://kenfilms.github.io/MagicPilot_Live/sitemap.xml
+Sitemap: https://kenfilms.github.io/MagicPilot_Remote_Stick/sitemap.xml
